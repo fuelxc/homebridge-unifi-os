@@ -11,7 +11,7 @@ export class UnifiClientDevice {
   private service: Service;
 
   private states = {
-    On: true
+    On: true,
   };
 
   constructor(
@@ -20,13 +20,13 @@ export class UnifiClientDevice {
     private readonly initialIsOn: boolean,
   ) {
 
-    const clientDevice = accessory.context.device
-    const displayName = clientDevice.name || clientDevice.hostname || clientDevice.device_name || clientDevice.mac
+    const clientDevice = accessory.context.device;
+    const displayName = clientDevice.name || clientDevice.hostname || clientDevice.device_name || clientDevice.mac;
 
     this.states.On = initialIsOn;
 
     if (displayName == clientDevice.mac) {
-      this.platform.log.debug('No name for client: ', clientDevice)
+      this.platform.log.debug('No name for client: ', clientDevice);
     }
 
     // set accessory information
@@ -55,12 +55,12 @@ export class UnifiClientDevice {
       if (turnOn) {
         return this.platform.controller.unblockClient(this.platform.siteName, this.accessory.context.device.mac, (error, resp) => {
           if (error) return reject(error);
-          resolve(resp[0][0].blocked)
+          resolve(resp[0][0].blocked);
         });
       } else {
         return this.platform.controller.blockClient(this.platform.siteName, this.accessory.context.device.mac, (error, resp) => {
           if (error) return reject(error);
-          resolve(resp[0][0].blocked)
+          resolve(resp[0][0].blocked);
         });
       }
     });

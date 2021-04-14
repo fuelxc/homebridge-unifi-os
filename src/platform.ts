@@ -12,7 +12,7 @@ export class UnifiOsPlatform implements DynamicPlatformPlugin {
   public readonly accessories: PlatformAccessory[] = [];
 
   public readonly controller: Controller;
-  public readonly siteName: String;
+  public readonly siteName: string;
 
   constructor(
     public readonly log: Logger,
@@ -21,20 +21,20 @@ export class UnifiOsPlatform implements DynamicPlatformPlugin {
   ) {
     this.log.debug('Finished initializing platform:', this.config.name);
 
-    let requiredConfig = argName => {
-      this.log.error(`${argName} is required. Check config.json.`)
+    const requiredConfig = argName => {
+      this.log.error(`${argName} is required. Check config.json.`);
       return;
     };
-    
-    let {
+
+    const {
       username = requiredConfig('username'),
       password = requiredConfig('password'),
       controllerAddress = requiredConfig('controllerAddress'),
       controllerPort = 8443,
-      siteName = "default"
+      siteName = "default",
     } = config;
 
-    
+
     this.log.debug('Connecting to controller', controllerAddress);
     this.log.debug('Connecting to port', controllerPort);
     this.controller = new Controller(controllerAddress, controllerPort);
@@ -47,7 +47,7 @@ export class UnifiOsPlatform implements DynamicPlatformPlugin {
         if (error) {
           this.log.error(`Can't login: ${error}`);
           return;
-        };
+        }
 
         this.discoverDevices();
       });
@@ -65,16 +65,16 @@ export class UnifiOsPlatform implements DynamicPlatformPlugin {
       if (error) {
         this.log.error(`Can't discover: ${error}`);
         return;
-      };
-      this.registerDevices(usersData[0], true)
+      }
+      this.registerDevices(usersData[0], true);
     });
 
     this.controller.getBlockedUsers(this.siteName, (error, usersData) => {
       if (error) {
         this.log.error(`Can't discover: ${error}`);
         return;
-      };
-      this.registerDevices(usersData[0], false)
+      }
+      this.registerDevices(usersData[0], false);
     });
   }
 
@@ -91,7 +91,7 @@ export class UnifiOsPlatform implements DynamicPlatformPlugin {
         new UnifiClientDevice(this, existingAccessory, isOn);
       } else {
         // the accessory does not yet exist, so we need to create it
-        let displayName = clientDevice.name || clientDevice.hostname || clientDevice.device_name || clientDevice.mac
+        const displayName = clientDevice.name || clientDevice.hostname || clientDevice.device_name || clientDevice.mac;
         this.log.info('Adding new accessory:', displayName);
 
         const accessory = new this.api.platformAccessory(displayName, uuid);
