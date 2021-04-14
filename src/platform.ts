@@ -31,7 +31,7 @@ export class UnifiOsPlatform implements DynamicPlatformPlugin {
       password = requiredConfig('password'),
       controllerAddress = requiredConfig('controllerAddress'),
       controllerPort = 8443,
-      siteName = "default",
+      siteName = 'default',
     } = config;
 
 
@@ -42,7 +42,7 @@ export class UnifiOsPlatform implements DynamicPlatformPlugin {
 
     this.api.on('didFinishLaunching', () => {
       this.log.debug('Executed didFinishLaunching callback');
-      
+
       this.controller.login(username, password, (error) => {
         if (error) {
           this.log.error(`Can't login: ${error}`);

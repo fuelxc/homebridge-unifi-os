@@ -25,7 +25,7 @@ export class UnifiClientDevice {
 
     this.states.On = initialIsOn;
 
-    if (displayName == clientDevice.mac) {
+    if (displayName === clientDevice.mac) {
       this.platform.log.debug('No name for client: ', clientDevice);
     }
 
@@ -54,12 +54,16 @@ export class UnifiClientDevice {
     return new Promise((resolve, reject) => {
       if (turnOn) {
         return this.platform.controller.unblockClient(this.platform.siteName, this.accessory.context.device.mac, (error, resp) => {
-          if (error) return reject(error);
+          if (error) {
+            return reject(error);
+          }
           resolve(resp[0][0].blocked);
         });
       } else {
         return this.platform.controller.blockClient(this.platform.siteName, this.accessory.context.device.mac, (error, resp) => {
-          if (error) return reject(error);
+          if (error) {
+            return reject(error);
+          }
           resolve(resp[0][0].blocked);
         });
       }
@@ -72,8 +76,12 @@ export class UnifiClientDevice {
    */
   async setOn(value: CharacteristicValue) {
     this.updateClient(value)
-      .then(isOn => { this.states.On = isOn })
-      .catch(error => { this.platform.log.error(`Error in setOn: ${error}`) });
+      .then(isOn => {
+        this.states.On = isOn;
+      })
+      .catch(error => {
+        this.platform.log.error(`Error in setOn: ${error}`);
+      });
   }
 
   /**
@@ -93,7 +101,9 @@ export class UnifiClientDevice {
     // implement your own code to check if the device is on
     return new Promise((resolve, reject) => {
       this.platform.controller.getBlockedUsers(this.platform.siteName, (error, userData) => {
-        if (error) return reject(error);
+        if (error) {
+          return reject(error);
+        }
         const isOn = !(userData[0].map(client => client.mac).includes(this.accessory.context.device.mac));
 
         resolve(isOn);
