@@ -5,16 +5,10 @@ import { UnifiClientDevice } from './platformAccessory';
 
 import { Controller } from 'node-unifi';
 
-/**
- * HomebridgePlatform
- * This class is the main constructor for your plugin, this is where you should
- * parse the user config and discover/register accessories with Homebridge.
- */
 export class UnifiOsPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
 
-  // this is used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
 
   public readonly controller: Controller;
@@ -37,7 +31,6 @@ export class UnifiOsPlatform implements DynamicPlatformPlugin {
       password = requiredConfig('password'),
       controllerAddress = requiredConfig('controllerAddress'),
       controllerPort = 8443,
-      //pollingFrequency = 5000,
       siteName = "default"
     } = config;
 
@@ -47,15 +40,9 @@ export class UnifiOsPlatform implements DynamicPlatformPlugin {
     this.controller = new Controller(controllerAddress, controllerPort);
     this.siteName = siteName;
 
-    // When this event is fired it means Homebridge has restored all cached accessories from disk.
-    // Dynamic Platform plugins should only register new accessories after this event was fired,
-    // in order to ensure they weren't added to homebridge already. This event can also be used
-    // to start discovery of new accessories.
     this.api.on('didFinishLaunching', () => {
       this.log.debug('Executed didFinishLaunching callback');
       
-      // run the method to discover / register your devices as accessories
-
       this.controller.login(username, password, (error) => {
         if (error) {
           this.log.error(`Can't login: ${error}`);
@@ -67,29 +54,19 @@ export class UnifiOsPlatform implements DynamicPlatformPlugin {
     });
   }
 
-  /**
-   * This function is invoked when homebridge restores cached accessories from disk at startup.
-   * It should be used to setup event handlers for characteristics and update respective values.
-   */
   configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
 
-    // add the restored accessory to the accessories cache so we can track if it has already been registered
     this.accessories.push(accessory);
   }
 
-  /**
-   * This is an example method showing how to register discovered accessories.
-   * Accessories must only be registered once, previously created accessories
-   * must not be registered again to prevent "duplicate UUID" errors.
-   */
   discoverDevices() {
     this.controller.getAllUsers(this.siteName, (error, usersData) => {
       if (error) {
         this.log.error(`Can't discover: ${error}`);
         return;
       };
-      this.registerDevices(usersData[0])
+      this.registerDevices(usersData[0], true)
     });
 
     this.controller.getBlockedUsers(this.siteName, (error, usersData) => {
@@ -97,11 +74,11 @@ export class UnifiOsPlatform implements DynamicPlatformPlugin {
         this.log.error(`Can't discover: ${error}`);
         return;
       };
-      this.registerDevices(usersData[0])
+      this.registerDevices(usersData[0], false)
     });
   }
 
-  registerDevices(devices) {
+  registerDevices(devices, isOn) {
     for (const clientDevice of devices) {
       const uuid = this.api.hap.uuid.generate(clientDevice.mac);
       const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
@@ -110,35 +87,18 @@ export class UnifiOsPlatform implements DynamicPlatformPlugin {
         // the accessory already exists
         this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
 
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-        // existingAccessory.context.device = device;
-        // this.api.updatePlatformAccessories([existingAccessory]);
-
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new UnifiClientDevice(this, existingAccessory);
-
-        // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, eg.:
-        // remove platform accessories when no longer present
-        // this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
-        // this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
+        this.log.debug('isOn: ', isOn);
+        new UnifiClientDevice(this, existingAccessory, isOn);
       } else {
         // the accessory does not yet exist, so we need to create it
-        let displayName = clientDevice.name || clientDevice.hostname || clientDevice.mac
+        let displayName = clientDevice.name || clientDevice.hostname || clientDevice.device_name || clientDevice.mac
         this.log.info('Adding new accessory:', displayName);
 
-        // create a new accessory
         const accessory = new this.api.platformAccessory(displayName, uuid);
-
-        // store a copy of the device object in the `accessory.context`
-        // the `context` property can be used to store any data about the accessory you may need
         accessory.context.device = clientDevice;
 
-        // create the accessory handler for the newly create accessory
-        // this is imported from `platformAccessory.ts`
-        new UnifiClientDevice(this, accessory);
+        new UnifiClientDevice(this, accessory, isOn);
 
-        // link the accessory to your platform
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
       }
     }

@@ -10,10 +10,6 @@ import { UnifiOsPlatform } from './platform';
 export class UnifiClientDevice {
   private service: Service;
 
-  /**
-   * These are just used to create a working example
-   * You should implement your own code to track the state of your accessory
-   */
   private states = {
     On: true
   };
@@ -21,10 +17,17 @@ export class UnifiClientDevice {
   constructor(
     private readonly platform: UnifiOsPlatform,
     private readonly accessory: PlatformAccessory,
+    private readonly initialIsOn: boolean,
   ) {
 
     const clientDevice = accessory.context.device
-    const displayName = clientDevice.name || clientDevice.hostname || clientDevice.mac
+    const displayName = clientDevice.name || clientDevice.hostname || clientDevice.device_name || clientDevice.mac
+
+    this.states.On = initialIsOn;
+
+    if (displayName == clientDevice.mac) {
+      this.platform.log.debug('No name for client: ', clientDevice)
+    }
 
     // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
@@ -47,32 +50,30 @@ export class UnifiClientDevice {
       .onGet(this.getOn.bind(this));               // GET - bind to the `getOn` method below
   }
 
+  updateClient(turnOn: CharacteristicValue): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      if (turnOn) {
+        return this.platform.controller.unblockClient(this.platform.siteName, this.accessory.context.device.mac, (error, resp) => {
+          if (error) return reject(error);
+          resolve(resp[0][0].blocked)
+        });
+      } else {
+        return this.platform.controller.blockClient(this.platform.siteName, this.accessory.context.device.mac, (error, resp) => {
+          if (error) return reject(error);
+          resolve(resp[0][0].blocked)
+        });
+      }
+    });
+  }
+
   /**
    * Handle "SET" requests from HomeKit
    * These are sent when the user changes the state of an accessory, for example, turning on a Light bulb.
    */
   async setOn(value: CharacteristicValue) {
-    // implement your own code to turn your device on/off
-    if (value as boolean) {
-      this.platform.controller.unblockClient(this.platform.siteName, this.accessory.context.device.mac, (error) => {
-        if (error) {
-          this.platform.log.error(`Can't setOn: ${error}`);
-          return;
-        }
-        this.states.On = value as boolean;
-      });
-    } else {
-      this.platform.controller.blockClient(this.platform.siteName, this.accessory.context.device.mac, (error) => {
-        if (error) {
-          this.platform.log.error(`Can't setOn: ${error}`);
-          return;
-        }
-        this.states.On = value as boolean;
-      });
-    }
-    
-
-    this.platform.log.debug('Set Characteristic On ->', value);
+    this.updateClient(value)
+      .then(isOn => { this.states.On = isOn })
+      .catch(error => { this.platform.log.error(`Error in setOn: ${error}`) });
   }
 
   /**
@@ -90,21 +91,13 @@ export class UnifiClientDevice {
    */
   async getOn(): Promise<CharacteristicValue> {
     // implement your own code to check if the device is on
-    this.platform.controller.getBlockedUsers(this.platform.siteName, (error, usersData) => {
-      if (error) {
-        this.platform.log.error(`Can't getOn: ${error}`);
-        return;
-      };
-      this.platform.log.debug("Blocked:", JSON.stringify(usersData[0]));
+    return new Promise((resolve, reject) => {
+      this.platform.controller.getBlockedUsers(this.platform.siteName, (error, userData) => {
+        if (error) return reject(error);
+        const isOn = !(userData[0].map(client => client.mac).includes(this.accessory.context.device.mac));
+
+        resolve(isOn);
+      });
     });
-
-    const isOn = this.states.On;
-
-    this.platform.log.debug('Get Characteristic On ->', isOn);
-
-    // if you need to return an error to show the device as "Not Responding" in the Home app:
-    // throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
-
-    return isOn;
   }
 }
