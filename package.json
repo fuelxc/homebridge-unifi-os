@@ -2,9 +2,10 @@
   "private": false,
   "displayName": "Unifi OS",
   "name": "homebridge-unifi-os",
-  "version": "1.0.2-beta.0",
+  "version": "1.0.0-beta.0",
   "description": "Exposes Unifi stuff.",
   "license": "Apache-2.0",
+  "author": "Eric Harrison (http://github.com/fuelxc)",
   "repository": {
     "type": "git",
     "url": "git://github.com/fuelxc/homebridge-unifi-os.git"
