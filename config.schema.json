@@ -18,12 +18,14 @@
       "notifications": {
         "title": "Get notified for device status changes?",
         "type": "boolean",
-        "required": false
+        "required": false,
+        "default": false
       },
       "siteName": {
-        "title": "Site/Controller Name",
+        "title": "Site Name",
         "type": "string",
-        "required": true
+        "required": false,
+        "default": "default"
       },
       "controllerAddress": {
         "title": "Controller Address",
@@ -35,7 +37,7 @@
         "title": "Controller Port",
         "type": "string",
         "required": false,
-        "default": "8443"
+        "default": "443"
       }
     }
   }
